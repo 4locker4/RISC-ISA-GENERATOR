@@ -15,11 +15,12 @@ module SimInfra
     def extract_pattern(instruction)
       pattern = 0
       instruction.fields.each do |field|
-        if field.value.is_a?(Integer)
+        if field.is_a?(Field) && field.value.is_a?(Integer)
           width = field.from - field.to + 1
           mask = (1 << width) - 1
           pattern |= (field.value & mask) << field.to
         end
+        # ImmFieldPart игнорируется
       end
       pattern
     end
@@ -117,7 +118,6 @@ module SimInfra
       return [0, 0] if instructions.empty?
     
       if lead_bits == 0
-        # Используем маску 0xFFFFFFFF, чтобы увидеть все различия
         patterns = instructions.map { |instr| extract_pattern(instr) }
         min_val = patterns.min
         max_val = patterns.max
@@ -140,5 +140,6 @@ module SimInfra
         (pattern & separ_mask) == (node & separ_mask)
       end
     end
+    
   end
 end

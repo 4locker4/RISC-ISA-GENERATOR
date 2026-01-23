@@ -5,7 +5,7 @@ module SimInfra
     def assert(condition, msg = nil); raise msg if !condition; end
 
     @@instructions = []
-    InstructionInfo= Struct.new(:name, :fields, :format, :code, :args, :asm)
+    InstructionInfo = Struct.new(:name, :fields, :format, :code, :args, :asm)
     class InstructionInfoBuilder
         def initialize(name, *args);
             @info = InstructionInfo.new(name)
@@ -39,13 +39,20 @@ module SimInfra
     include SimInfra
         def code(&block)
             @info.code = scope = Scope.new(nil) # root scope
-            @info.args.each do |arg|
+
+            @info.args.each do |arg|    
                 scope.add_var(arg.name, :i32)
                 if [:rs1, :rs2].include?(arg.name)
                     scope.stmt(:getreg, [arg.name, arg])
                 end
             end
 
+            # Костыль
+            if %i[AUIPC JAL JALR BEQ BNE BLT BGE].include?(@info.name)
+                scope.add_var(:pc, :i32)
+                scope.stmt(:getpc, [:pc])
+            end
+            
             scope.instance_eval &block
 
             dst_arg = @info.args.find { |a| a.name == :rd }
