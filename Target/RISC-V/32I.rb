@@ -1,6 +1,6 @@
 require_relative "encoding"
 require_relative "regfile"
-require_relative "../../Generic/base"
+require_relative "../../GenericIR/base"
 
 module RV32I
     extend SimInfra
@@ -145,105 +145,37 @@ module RV32I
     Instruction(:CSRRW, XReg(:rd), XReg(:rs1), Imm(:csr)) {
         encoding *format_i_funct(:csrrw, rd, rs1, csr)
         asm { "CSRRW #{rd}, #{csr}, #{rs1}" }
-        code {
-            old = var(:old, :i32)
-            read_csr(old, csr)
-            write_csr(csr, rs1)
-            if rd.name != :x0
-                rd[]= old
-            end
-        }
+        code { rd[]= read_csr(csr); write_csr(csr, rs1) }
     }
 
-    Instruction(:CSRRC, XReg(:rd), XReg(:rs1), Imm(:offset)) {
-        encoding *format_i_funct(:csrrc, rd, rs1, offset)
-        asm { "CSRRC #{rd}, #{offset}, #{rs1}" }
-        code {
-            old = var(:old, :i32)
-            read_csr(old, offset)
-        
-            if rd.name != :x0
-                rd[]= old
-            end
-        
-            mask = var(:mask, :i32)
-            mask = (~ rs1)
-            new_val = var(:new_val, :i32)
-            new_val = old & mask
-        
-            write_csr(offset, new_val)
-        }
+    Instruction(:CSRRC, XReg(:rd), XReg(:rs1), Imm(:csr)) {
+        encoding *format_i_funct(:csrrc, rd, rs1, csr)
+        asm { "CSRRC #{rd}, #{csr}, #{rs1}" }
+        code { rd[]= read_csr(csr); write_csr(csr, rd & ~rs1) }
     }
 
-    Instruction(:CSRRS, XReg(:rd), Imm(:offset), XReg(:rs1)) {
-        encoding *format_i_funct(:csrrs, rd, rs1, offset)
-        asm { "CSRRS #{rd}, #{offset}, #{rs1}" }
-        code {
-            old = var(:old, :i32)
-            read_csr(old, offset)
-
-            if rd.name != :x0
-              rd[]= old
-            end
-          
-            new_val = var(:new_val, :i32)
-            new_val = old | rs1
-          
-            write_csr(offset, new_val)
-        }
+    Instruction(:CSRRS, XReg(:rd), Imm(:csr), XReg(:rs1)) {
+        encoding *format_i_funct(:csrrs, rd, rs1, csr)
+        asm { "CSRRS #{rd}, #{csr}, #{rs1}" }
+        code { rd[]= read_csr(csr); write_csr(csr, rd | rs1) }
     }
 
-    Instruction(:CSRRWI, XReg(:rd), Imm(:offset), Imm(:uimm)) {
-        encoding *format_csrrwcsi(:csrrwi, rd, uimm, offset)
-        asm { "CSRRWI #{rd}, #{offset}, #{uimm}" }
-        code {
-            old = var(:old, :i32)
-            read_csr(old, offset)
-
-            if rd.name != :x0
-                rd[]= old
-            end
-          
-            write_csr(offset, uimm)
-        }
+    Instruction(:CSRRWI, XReg(:rd), Imm(:csr), Imm(:uimm)) {
+        encoding *format_csrrwcsi(:csrrwi, rd, uimm, csr)
+        asm { "CSRRWI #{rd}, #{csr}, #{uimm}" }
+        code { rd[]= read_csr(csr); write_csr(csr, uimm) }
     }
 
-    Instruction(:CSRRCI, XReg(:rd), Imm(:offset), Imm(:uimm)) {
-        encoding *format_csrrwcsi(:csrrci, rd, uimm, offset)
-        asm { "CSRRCI #{rd}, #{offset}, #{uimm}" }
-        code {
-            old = var(:old, :i32)
-            read_csr(old, offset)
-
-            if rd.name != :x0
-              rd[]= old
-            end
-        
-            not_uimm = ~uimm
-        
-            new_val = var(:new_val, :i32)
-            new_val = old & not_uimm
-
-            write_csr(offset, new_val)
-        }
+    Instruction(:CSRRCI, XReg(:rd), Imm(:csr), Imm(:uimm)) {
+        encoding *format_csrrwcsi(:csrrci, rd, uimm, csr)
+        asm { "CSRRCI #{rd}, #{csr}, #{uimm}" }
+        code {  rd[]= read_csr(csr); write_csr(csr, rd & ~uimm) }
     }
 
-    Instruction(:CSRRSI, XReg(:rd), Imm(:offset), Imm(:uimm)) {
-        encoding *format_csrrwcsi(:csrrsi, rd, uimm, offset)
-        asm { "CSRRSI #{rd}, #{offset}, #{uimm}" }
-        code {
-            old = var(:old, :i32)
-            read_csr(old, offset)
-
-            if rd.name != :x0
-              rd[]= old
-            end
-        
-            new_val = var(:new_val, :i32)
-            new_val = old | uimm
-
-            write_csr(offset, new_val)
-        }
+    Instruction(:CSRRSI, XReg(:rd), Imm(:csr), Imm(:uimm)) {
+        encoding *format_csrrwcsi(:csrrsi, rd, uimm, csr)
+        asm { "CSRRSI #{rd}, #{csr}, #{uimm}" }
+        code { rd[]= read_csr(csr); write_csr(csr, rd | uimm) }
     }
 
     Instruction(:ECALL) {

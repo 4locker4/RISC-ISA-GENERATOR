@@ -1,4 +1,4 @@
-require_relative "../../Generic/base"
+require_relative "../../GenericIR/base.rb"
 
 module SimInfra
     def format_r(opcode, funct3, funct7, rd, rs1, rs2)
@@ -80,22 +80,27 @@ module SimInfra
     end
     
     def format_b(opcode, funct3, rs1, rs2, imm)
-        return :B, [
-            immpart(:imm, 31, 25, 31, 25),
-            field(rs2.name, 24, 20, :reg),
-            field(rs1.name, 19, 15, :reg),
-            field(:funct3, 14, 12, funct3),
-            immpart(:imm, 11, 7, 11, 7),
-            field(:opcode, 6, 0, opcode)
-        ]
+      return :B, [
+        immpart(:imm, 31, 31, 12, 12),   # imm[12]
+        field(rs2.name, 24, 20, :reg),
+        field(rs1.name, 19, 15, :reg),
+        field(:funct3, 14, 12, funct3),
+        immpart(:imm, 30, 25, 10, 5),     # imm[10:5]
+        immpart(:imm, 11, 8, 4, 1),       # imm[4:1]
+        immpart(:imm, 7, 7, 11, 11),      # imm[11]
+        field(:opcode, 6, 0, opcode)
+      ]
     end
     
     def format_jal(rd, imm)
-        return :J, [
-            immpart(:imm, 31, 12, 31, 12),
-            field(:rd, 11, 7, :reg),
-            field(:opcode, 6, 0, 0b1110011)
-        ]
+      return :J, [
+        immpart(:imm, 31, 31, 20, 20),    # imm[20]
+        immpart(:imm, 30, 21, 10, 1),     # imm[19:12] → [10:1] в immediate
+        immpart(:imm, 20, 20, 11, 11),    # imm[11]
+        immpart(:imm, 19, 12, 19, 12),    # imm[19:12]
+        field(rd.name, 11, 7, :reg),
+        field(:opcode, 6, 0, 0b1111011)
+      ]
     end
 
     def format_u(opcode, rd, imm)
@@ -115,14 +120,14 @@ module SimInfra
         format_u(opcode, rd, imm)
     end
 
-    def format_s(opcode, funct3, rs2, rs1, imm)
+    def format_s(opcode, funct3, rs1, rs2, imm)
         return :S, [
-            immpart(:imm, 31, 25, 31, 25),
-            field(rs2.name, 24, 20, :reg),
-            field(rs1.name, 19, 15, :reg),
-            field(:funct3, 14, 12, funct3),
-            immpart(:imm, 11, 7, 11, 7),
-            field(:opcode, 6, 0, opcode),
+        immpart(:imm, 31, 25, 11, 5),     # imm[11:5]
+        field(rs2.name, 24, 20, :reg),
+        field(rs1.name, 19, 15, :reg),
+        field(:funct3, 14, 12, funct3),
+        immpart(:imm, 11, 7, 4, 0),       # imm[4:0]
+        field(:opcode, 6, 0, opcode)
         ]
     end
     

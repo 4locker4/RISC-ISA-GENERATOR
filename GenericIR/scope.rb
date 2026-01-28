@@ -82,6 +82,9 @@ module SimInfra
         def branch_ltu(rs1, rs2, offset); stmt(:branch_ltu, [rs1, rs2, offset]); end
         def branch_geu(rs1, rs2, offset); stmt(:branch_geu, [rs1, rs2, offset]); end
 
+        def read_csr(csr_imm); stmt(:read_csr, [csr_imm]); end
+        def write_csr(csr_imm, value); stmt(:write_csr, [csr_imm, value]); end
+        
         private def tmpvar(type); var("_tmp#{next_counter}".to_sym, type); end
         # stmtadds statement into tree and retursoperand[0]
         # which result in near all cases

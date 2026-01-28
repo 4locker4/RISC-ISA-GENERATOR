@@ -3,8 +3,9 @@ require_relative "scope"
 # Basics
 module SimInfra
     def assert(condition, msg = nil); raise msg if !condition; end
-
+    
     @@instructions = []
+
     InstructionInfo = Struct.new(:name, :fields, :format, :code, :args, :asm)
     class InstructionInfoBuilder
         def initialize(name, *args);
@@ -30,6 +31,10 @@ module SimInfra
         bldr.instance_eval &block
         @@instructions << bldr.info
         nil # only for debugging in IRB
+    end
+
+    def self.instructions
+        @@instructions
     end
 end
 

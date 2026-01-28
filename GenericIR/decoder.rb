@@ -15,48 +15,78 @@ module SimInfra
     def extract_pattern(instruction)
       pattern = 0
       instruction.fields.each do |field|
-        if field.is_a?(Field) && field.value.is_a?(Integer)
+        if field.is_a?(SimInfra::Field) && field.value.is_a?(Integer)
           width = field.from - field.to + 1
           mask = (1 << width) - 1
           pattern |= (field.value & mask) << field.to
         end
-        # ImmFieldPart игнорируется
       end
       pattern
     end
 
     def MakeTree(instructions, depth = 0)
-      return nil if depth > 64
-
+      return instructions if depth > 5 || instructions.size <= 1
+        
+      # TD костыли подгоны
+      if depth == 0
+        range = [6, 0]
+        msb, lsb = range[0], range[1]
+        width = msb - lsb + 1
+        mask = ((1 << width) - 1) << lsb
+      
+        tree = {
+          "range" => range,
+          "nodes" => {}
+        }
+      
+        (0...1 << width).each do |value|
+          node_value = value << lsb
+          sublist = FilterInstructions(instructions, node_value, mask)
+        
+          next if sublist.empty?
+        
+          if sublist.size == 1
+            tree["nodes"][value] = sublist
+          else
+            subtree = MakeTree(sublist, depth + 1)
+            tree["nodes"][value] = subtree
+          end
+        end
+      
+        return tree
+      end
+    
       lead_bits = GetLeadBits(instructions)
       maj_range = GetMajRange(lead_bits, instructions, 0)
-      msb, lsb = maj_range[1], maj_range[0]
-
-      return nil if lsb > msb
-
+      lsb, msb = maj_range[0], maj_range[1]
+    
+      return instructions if lsb > msb || msb >= @bit_width
+    
       width = msb - lsb + 1
-
       return instructions if width <= 0 || width > 16
-
+    
       tree = {
         "range" => [msb, lsb],
         "nodes" => {}
       }
-
-      (0...1 << width).each do |node_value|
-        actual_node = node_value << lsb
-        subtree = {}
-
-        is_leaf, result = MakeChild(actual_node, ((1 << width) - 1) << lsb, instructions, subtree, depth + 1)
-
-        if is_leaf
-          tree["nodes"][node_value] = result
-        elsif !subtree.empty?
-          tree["nodes"][node_value] = subtree
+    
+      mask = ((1 << width) - 1) << lsb
+    
+      (0...1 << width).each do |value|
+        node_value = value << lsb
+        sublist = FilterInstructions(instructions, node_value, mask)
+      
+        next if sublist.empty?
+      
+        if sublist.size == 1
+          tree["nodes"][value] = sublist
+        else
+          subtree = MakeTree(sublist, depth + 1)
+          tree["nodes"][value] = subtree if subtree
         end
       end
-
-      return tree
+    
+      tree
     end
 
     def MakeChild(node, separ_mask, instructions, current_subtree, depth = 0)
