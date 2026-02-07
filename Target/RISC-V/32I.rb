@@ -208,11 +208,11 @@ module RV32I
         code { }
     }
 
-    Instruction(:SFENCE_VMA, XReg(:rs1), XReg(:rs2)) {
-        encoding *format_sfence_vma()
-        asm { "SFENCE.VMA #{rs1}, #{rs2}" }
-        code {}
-    }
+    # Instruction(:SFENCE_VMA, XReg(:rs1), XReg(:rs2)) {
+    #     encoding *format_sfence_vma()
+    #     asm { "SFENCE.VMA #{rs1}, #{rs2}" }
+    #     code {}
+    # }
 
     Instruction(:LB, XReg(:rd), Imm(:offset), XReg(:rs1)) {
         encoding *format_i_funct(:lb, rd, rs1, offset)

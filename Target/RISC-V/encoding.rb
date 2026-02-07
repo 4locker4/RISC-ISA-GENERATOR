@@ -12,6 +12,59 @@ module SimInfra
         ]
     end
 
+    def format_i(opcode, funct3, rd, rs1, imm)
+        return :I, [
+            immpart(:imm, 31, 20, 31, 20),
+            field(rs1.name, 19, 15, :reg),
+            field(:funct3, 14, 12, funct3),
+            field(rd.name, 11, 7, :reg),
+            field(:opcode, 6, 0, opcode),
+        ]
+    end
+
+    def format_s(opcode, funct3, rs1, rs2, imm)
+        return :S, [
+        immpart(:imm, 31, 25, 11, 5),     # imm[11:5]
+        field(rs2.name, 24, 20, :reg),
+        field(rs1.name, 19, 15, :reg),
+        field(:funct3, 14, 12, funct3),
+        immpart(:imm, 11, 7, 4, 0),       # imm[4:0]
+        field(:opcode, 6, 0, opcode)
+        ]
+    end
+
+    def format_b(opcode, funct3, rs1, rs2, imm)
+      return :B, [
+        immpart(:imm, 31, 31, 12, 12),   # imm[12]
+        field(rs2.name, 24, 20, :reg),
+        field(rs1.name, 19, 15, :reg),
+        field(:funct3, 14, 12, funct3),
+        immpart(:imm, 30, 25, 10, 5),     # imm[10:5]
+        immpart(:imm, 11, 8, 4, 1),       # imm[4:1]
+        immpart(:imm, 7, 7, 11, 11),      # imm[11]
+        field(:opcode, 6, 0, opcode)
+      ]
+    end
+
+    def format_jal(rd, imm)
+      return :J, [
+        immpart(:imm, 31, 31, 20, 20),    # imm[20]
+        immpart(:imm, 30, 21, 10, 1),     # imm[19:12] → [10:1] в immediate
+        immpart(:imm, 20, 20, 11, 11),    # imm[11]
+        immpart(:imm, 19, 12, 19, 12),    # imm[19:12]
+        field(rd.name, 11, 7, :reg),
+        field(:opcode, 6, 0, 0b1111011)
+      ]
+    end
+
+    def format_u(opcode, rd, imm)
+        return :U, [
+            immpart(:imm, 31, 12, 31, 12),
+            field(rd.name, 11, 7, :reg),
+            field(:opcode, 6, 0, opcode),
+        ]
+    end
+
     def format_r_alu(name, rd, rs1, rs2)
         funct3, funct7 =
         {
@@ -29,15 +82,6 @@ module SimInfra
         format_r(0b1100110, funct3, funct7, rd, rs1, rs2)
     end
 
-    def format_i(opcode, funct3, rd, rs1, imm)
-        return :I, [
-            immpart(:imm, 31, 20, 31, 20),
-            field(rs1.name, 19, 15, :reg),
-            field(:funct3, 14, 12, funct3),
-            field(rd.name, 11, 7, :reg),
-            field(:opcode, 6, 0, opcode),
-        ]
-    end
 
     def format_i_funct(name, rd, rs1, imm)
         opcode, funct3 =
@@ -78,38 +122,6 @@ module SimInfra
         }[name]
         format_b(opcode, funct3, rs1, rs2, imm)
     end
-    
-    def format_b(opcode, funct3, rs1, rs2, imm)
-      return :B, [
-        immpart(:imm, 31, 31, 12, 12),   # imm[12]
-        field(rs2.name, 24, 20, :reg),
-        field(rs1.name, 19, 15, :reg),
-        field(:funct3, 14, 12, funct3),
-        immpart(:imm, 30, 25, 10, 5),     # imm[10:5]
-        immpart(:imm, 11, 8, 4, 1),       # imm[4:1]
-        immpart(:imm, 7, 7, 11, 11),      # imm[11]
-        field(:opcode, 6, 0, opcode)
-      ]
-    end
-    
-    def format_jal(rd, imm)
-      return :J, [
-        immpart(:imm, 31, 31, 20, 20),    # imm[20]
-        immpart(:imm, 30, 21, 10, 1),     # imm[19:12] → [10:1] в immediate
-        immpart(:imm, 20, 20, 11, 11),    # imm[11]
-        immpart(:imm, 19, 12, 19, 12),    # imm[19:12]
-        field(rd.name, 11, 7, :reg),
-        field(:opcode, 6, 0, 0b1111011)
-      ]
-    end
-
-    def format_u(opcode, rd, imm)
-        return :U, [
-            immpart(:imm, 31, 12, 31, 12),
-            field(rd.name, 11, 7, :reg),
-            field(:opcode, 6, 0, opcode),
-        ]
-    end
 
     def format_u_funct(name, rd, imm)
         opcode = 
@@ -118,17 +130,6 @@ module SimInfra
             auipc: 0b1110100
         }[name]
         format_u(opcode, rd, imm)
-    end
-
-    def format_s(opcode, funct3, rs1, rs2, imm)
-        return :S, [
-        immpart(:imm, 31, 25, 11, 5),     # imm[11:5]
-        field(rs2.name, 24, 20, :reg),
-        field(rs1.name, 19, 15, :reg),
-        field(:funct3, 14, 12, funct3),
-        immpart(:imm, 11, 7, 4, 0),       # imm[4:0]
-        field(:opcode, 6, 0, opcode)
-        ]
     end
     
     def format_s_funct(name, rs2, rs1, imm)
@@ -150,7 +151,7 @@ module SimInfra
             fencei: 0b100
         }[name]
 
-        return :I, [
+        return :I_f, [
             immpart(:fm, 31, 28, 31, 28),
             immpart(:pred, 27, 24, 27, 24),
             immpart(:succ, 23, 20, 23, 20),
@@ -170,7 +171,7 @@ module SimInfra
             csrrsi: 0b011
         }[name]
         
-        return :I, [
+        return :I_csrr, [
             immpart(:csr, 31, 20, 31, 20),
             immpart(:uimm, 19, 15, 19, 15),
             field(:funct3, 14, 12, funct3),
@@ -189,7 +190,7 @@ module SimInfra
             wfi: [0b0001000, 0b10100],
         }[name]
 
-        return :I, [
+        return :I_sys, [
             field(:funct7, 31, 25, funct7),
             field(:funct5, 24, 20, funct5),
             field(:padding, 19, 7, 0),
@@ -198,7 +199,7 @@ module SimInfra
     end
 
     def format_sfence_vma()
-        return :R, [
+        return :R_vma, [
             field(:funct7, 31, 25, 9),     # 0b0001001 = 9
             field(:rs2, 24, 20, 0),
             field(:rs1, 19, 15, 0),

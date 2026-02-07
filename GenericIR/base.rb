@@ -4,7 +4,7 @@ module SimInfra
     # @@instructions - array of instruction description
     # shows result of our tests in interactive Ruby (IRB) or standalone
     def self.serialize(msg= nil)
-        return @@instructions if Object.const_defined?(:IRB)
+        return @@instructions, @@register_specification if Object.const_defined?(:IRB)
         require 'yaml'
 
         tree_builder = InstrTree.new(@@instructions)
@@ -14,6 +14,12 @@ module SimInfra
 
         File.open("IR.yaml", "w") do |file|
             file.write(yaml_data)
+        end
+
+        yaml_regdata = YAML.dump(@@register_specification.map(&:to_h))
+
+        File.open("Registers.yaml", "w") do |file|
+            file.write(yaml_regdata)
         end
     end
 
@@ -39,21 +45,3 @@ module SimInfra
     def assert(condition, msg = nil); raise msg if !condition; end
 end
 
-module SimInfra
-  class Immediate
-    attr_reader :name
-
-    def initialize(name)
-      @name = name
-    end
-
-    # String representation for asm output
-    def to_s
-      @name.to_s
-    end
-  end
-
-  def Imm(name)
-    Immediate.new(name)
-  end
-end
